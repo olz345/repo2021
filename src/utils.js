@@ -3,15 +3,17 @@ export function MyPromise(executor) {
   this.PromiseResult = null;
 
   let that = this;
-  this.callback = {};
+  this.callback = [];
 
   function resolve(data) {
     if (that.PromiseState !== "pending") return;
     that.PromiseState = "fulfilled";
     that.PromiseResult = data;
 
-    if (that.callback.onResolved) {
-      that.callback.onResolved(data);
+    if (that.callback.length) {
+      that.callback.forEach((item) => {
+        item.onResolved(data);
+      });
     }
   }
   function reject(data) {
@@ -19,8 +21,10 @@ export function MyPromise(executor) {
     that.PromiseState = "rejected";
     that.PromiseResult = data;
 
-    if (that.callback.onRejected) {
-      that.callback.onRejected(data);
+    if (that.callback.length) {
+      that.callback.forEach((item) => {
+        item.onRejected();
+      });
     }
   }
   try {
@@ -30,16 +34,45 @@ export function MyPromise(executor) {
   }
 }
 MyPromise.prototype.then = function (onResolved, onRejected) {
-  if (this.PromiseState === "fulfilled") {
-    onResolved(this.PromiseResult);
-  }
-  if (this.PromiseState === "rejected") {
-    onRejected(this.PromiseResult);
-  }
-  if (this.PromiseState === "pending") {
-    this.callback = {
-      onResolved,
-      onRejected,
-    };
-  }
+  let that = this;
+
+  return new MyPromise((resolve, reject) => {
+    function callback(type) {
+      try {
+        let result = type(that.PromiseResult);
+
+        if (result instanceof MyPromise) {
+          result.then(
+            (v) => {
+              resolve(v);
+            },
+            (r) => {
+              reject(r);
+            }
+          );
+        } else {
+          resolve(result);
+        }
+      } catch (error) {
+        reject(error);
+      }
+    }
+
+    if (this.PromiseState === "fulfilled") {
+      callback(onResolved);
+    }
+    if (this.PromiseState === "rejected") {
+      callback(onRejected);
+    }
+    if (this.PromiseState === "pending") {
+      this.callback.push({
+        onResolved: function () {
+          callback(onResolved);
+        },
+        onRejected: function () {
+          callback(onRejected);
+        },
+      });
+    }
+  });
 };

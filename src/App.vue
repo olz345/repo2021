@@ -5,9 +5,9 @@ let p = new MyPromise((resolve, reject) => {
   setTimeout(() => {
     resolve(123);
   }, 2000);
+  // resolve(123);
 });
-console.log(p);
-p.then(
+let pp = p.then(
   (value) => {
     console.log(value);
   },
@@ -15,6 +15,23 @@ p.then(
     console.log(reason);
   }
 );
+
+let a = new MyPromise((_, r) => {
+  setTimeout(() => {
+    r();
+  }, 2000);
+});
+
+let b = a.then(
+  () => {},
+  (r) => {
+    console.log(r);
+  }
+);
+
+console.log("b", b);
+
+console.log(pp);
 </script>
 
 <template>
